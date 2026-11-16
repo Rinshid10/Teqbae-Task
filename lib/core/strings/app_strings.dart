@@ -341,8 +341,8 @@ abstract final class AppStrings {
   static String geofenceRadius(int metres) => '$metres m geofence';
   static const devReset = 'Reset mock data & local database';
   static const devResetHint =
-      'Clears saved data and unsent check-ins on this device, and restores '
-      "the mock server's seed data.";
+      'Clears saved data and unsent check-ins on this device, and clears '
+      "the mock server's data.";
   static const devResetDone = 'Everything was reset';
   static const devResetLocalOnly =
       'Local data cleared. The server could not be reached.';

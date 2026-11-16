@@ -95,18 +95,28 @@ void main() {
       expect(r.json['timezone'], 'Asia/Kolkata');
     });
 
-    test('GET /attendance is seeded with 10 past weekdays, newest first',
+    test('GET /attendance starts empty, then lists records newest first',
         () async {
+      final empty = await call('GET', '/attendance');
+      expect(empty.json['records'], isEmpty);
+
+      // An older day put straight into the store, plus a check-in today.
+      server.store.attendanceByDate['2026-11-13'] = AttendanceRecord(
+        id: 'att_old',
+        workDate: '2026-11-13',
+        checkInAt: DateTime.utc(2026, 11, 13, 3, 30),
+        checkInEventId: 'evt-old',
+      );
+      await postEvent(event());
+
       final r = await call('GET', '/attendance');
       final records = r.json['records'] as List;
-      expect(records, hasLength(10));
-      // Today is a Monday, so the newest seeded day is the Friday before.
-      expect(records.first['work_date'], '2026-11-13');
-      expect(records.any((x) => x['work_date'] == today), isFalse);
+      expect(records.map((x) => x['work_date']), [today, '2026-11-13']);
     });
 
     test('GET /attendance?month filters, and rejects a malformed month',
         () async {
+      await postEvent(event());
       final nov = await call('GET', '/attendance?month=2026-11');
       final all = nov.json['records'] as List;
       expect(all, isNotEmpty);
@@ -118,15 +128,16 @@ void main() {
       expect(bad.json['code'], 'INVALID_MONTH');
     });
 
-    test('GET /leave/balance and /leave/requests reflect the seed', () async {
+    test('GET /leave/balance starts at the full allowance, with no requests',
+        () async {
       final balance = await call('GET', '/leave/balance');
       final casual = (balance.json['balances'] as List)
           .firstWhere((b) => b['type'] == 'CASUAL');
-      // 12 total - 2 approved - 2 pending.
-      expect(casual, containsPair('available', 8));
+      expect(casual, containsPair('total', 12));
+      expect(casual, containsPair('available', 12));
 
       final requests = await call('GET', '/leave/requests');
-      expect(requests.json['requests'], hasLength(3));
+      expect(requests.json['requests'], isEmpty);
     });
   });
 
@@ -161,7 +172,7 @@ void main() {
       final todays =
           (list.json['records'] as List).where((x) => x['work_date'] == today);
       expect(todays, hasLength(1));
-      expect(server.store.attendanceByDate, hasLength(11)); // 10 seeded + 1
+      expect(server.store.attendanceByDate, hasLength(1));
     });
 
     test('a second check-in with a DIFFERENT event_id is a 409', () async {
@@ -311,7 +322,6 @@ void main() {
     });
 
     test('a REJECTED request does not block its dates', () async {
-      // The seeded rejected request is in the past, so add a future one.
       server.store.leaveRequests.add(LeaveRequest(
         id: 'leave_rejected',
         type: 'SICK',
@@ -402,7 +412,7 @@ void main() {
       final retry = await postEvent(event());
       expect(retry.status, 200);
       expect(retry.json['id'], first.json['id']);
-      expect(server.store.attendanceByDate, hasLength(11));
+      expect(server.store.attendanceByDate, hasLength(1));
     });
 
     test('slow still succeeds', () async {
@@ -411,14 +421,14 @@ void main() {
       expect(r.status, 200);
     });
 
-    test('POST /__mock/reset restores the seed and the success scenario',
+    test('POST /__mock/reset clears the data and restores the success scenario',
         () async {
       await postEvent(event());
       await call('POST', '/__mock/scenario', body: {'name': 'server_error'});
 
       final reset = await call('POST', '/__mock/reset');
       expect(reset.status, 200);
-      expect(server.store.attendanceByDate, hasLength(10));
+      expect(server.store.attendanceByDate, isEmpty);
       expect(server.store.scenario, Scenario.success);
       expect((await call('GET', '/attendance')).status, 200);
     });

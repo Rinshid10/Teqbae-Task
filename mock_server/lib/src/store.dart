@@ -4,7 +4,7 @@ import 'models.dart';
 import 'scenario.dart';
 
 /// All server state, held in memory. Restarting the server (or calling
-/// POST /__mock/reset) brings back the same seeded data.
+/// POST /__mock/reset) empties it again.
 class Store {
   Store(this.config, this.now) {
     reset();
@@ -75,75 +75,16 @@ class Store {
       .where((r) => r.type == type && r.status == status)
       .fold<int>(0, (sum, r) => sum + r.days);
 
-  // ---- seed ---------------------------------------------------------------
+  // ---- reset --------------------------------------------------------------
 
-  /// Clears everything and seeds again. Dates are relative to "today", so
-  /// the data always looks recent, and today itself is left empty so a
-  /// reviewer can check in straight away.
+  /// Clears everything. The server starts with no attendance and no leave
+  /// requests: the only fixed data is the employee (/employee/me) and the
+  /// yearly leave allowance. Every record is created through the API.
   void reset() {
     scenario = Scenario.success;
     attendanceByDate.clear();
     recordByEventId.clear();
     leaveRequests.clear();
     _nextId = 1;
-
-    final today = this.today();
-
-    // The 10 most recent weekdays before today.
-    var seeded = 0;
-    for (var back = 1; seeded < 10; back++) {
-      final day = today.subtract(Duration(days: back));
-      if (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday) {
-        continue;
-      }
-      seeded++;
-      // Vary the times a little so the list does not look generated:
-      // in between 09:00-09:24, out between 18:00-18:39 (company time).
-      final localIn = day.add(Duration(hours: 9, minutes: (back * 7) % 25));
-      final localOut = day.add(Duration(hours: 18, minutes: (back * 11) % 40));
-      final record = AttendanceRecord(
-        id: newId('att'),
-        workDate: formatDate(day),
-        // company-local -> UTC
-        checkInAt: localIn.subtract(config.utcOffset),
-        checkOutAt: localOut.subtract(config.utcOffset),
-        checkInEventId: 'seed-in-${formatDate(day)}',
-        checkOutEventId: 'seed-out-${formatDate(day)}',
-      );
-      attendanceByDate[record.workDate] = record;
-      recordByEventId[record.checkInEventId] = record;
-      recordByEventId[record.checkOutEventId!] = record;
-    }
-
-    DateTime day(int offset) => today.add(Duration(days: offset));
-    leaveRequests.addAll([
-      LeaveRequest(
-        id: newId('leave'),
-        type: 'CASUAL',
-        startDate: day(-20),
-        endDate: day(-19),
-        reason: 'Family function out of town',
-        status: 'APPROVED',
-        createdAt: now().toUtc().subtract(const Duration(days: 27)),
-      ),
-      LeaveRequest(
-        id: newId('leave'),
-        type: 'SICK',
-        startDate: day(-35),
-        endDate: day(-35),
-        reason: 'Dental appointment in the morning',
-        status: 'REJECTED',
-        createdAt: now().toUtc().subtract(const Duration(days: 36)),
-      ),
-      LeaveRequest(
-        id: newId('leave'),
-        type: 'CASUAL',
-        startDate: day(10),
-        endDate: day(11),
-        reason: 'Travelling home for a wedding',
-        status: 'PENDING',
-        createdAt: now().toUtc().subtract(const Duration(days: 2)),
-      ),
-    ]);
   }
 }

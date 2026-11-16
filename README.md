@@ -305,7 +305,7 @@ Or switch from a terminal:
 
 ```bash
 curl -X POST http://localhost:8080/__mock/scenario -H "content-type: application/json" -d '{"name":"timeout_after_commit"}'
-curl -X POST http://localhost:8080/__mock/reset      # restore seed data + success
+curl -X POST http://localhost:8080/__mock/reset      # clear all data + success
 ```
 
 PowerShell:

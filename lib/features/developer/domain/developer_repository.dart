@@ -29,7 +29,7 @@ abstract class DeveloperRepository {
 
   Future<Result<void>> setScenario(MockScenario scenario);
 
-  /// Restores the server's seed data and the `success` scenario.
+  /// Clears the server's data and restores the `success` scenario.
   Future<Result<void>> resetServer();
 
   /// Deletes every local cache table and the outbox.
