@@ -21,10 +21,12 @@ class AppConfig {
     mockLocation: _mockLocation,
   );
 
-  // 10.0.2.2 is how the Android emulator reaches the host machine's localhost.
+  // The default is the hosted copy of mock_server/, so an installed APK
+  // works on any phone with no setup. To use a server on your own machine:
+  //   --dart-define=API_BASE_URL=http://10.0.2.2:8080   (Android emulator)
   static const _apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:8080',
+    defaultValue: 'https://rebs-hrms-mock-api.onrender.com',
   );
 
   // Empty = use the real device GPS. Otherwise one of:

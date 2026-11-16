@@ -225,7 +225,22 @@ test/             unit, widget and live-server tests
 
 Requirements: Flutter 3.38+ (Dart 3.10+).
 
-**1. Start the mock server**
+**Live mock API (no setup)**
+
+A copy of `mock_server/` is hosted at
+**https://rebs-hrms-mock-api.onrender.com** and the app uses it by default,
+so the debug APK works on any phone without running anything locally.
+
+- It runs on a free plan that sleeps after about 15 minutes without
+  requests. The first request after that can take up to a minute, which is
+  longer than the app's 8 s timeout: the app opens in offline mode, and a
+  pull-to-refresh a little later loads the data. Opening
+  https://rebs-hrms-mock-api.onrender.com/employee/me in a browser first
+  wakes it up.
+- Data is kept in memory, so it is cleared whenever the server sleeps or
+  restarts, and it is shared by everyone using the address.
+
+**1. Start the mock server locally (optional)**
 
 ```bash
 cd mock_server
@@ -239,12 +254,13 @@ It prints every request and response, so you can watch the app talk to it.
 
 ```bash
 flutter pub get
-flutter run --dart-define=MOCK_LOCATION=inside
+flutter run --dart-define=MOCK_LOCATION=inside                                             # live server
+flutter run --dart-define=MOCK_LOCATION=inside --dart-define=API_BASE_URL=http://10.0.2.2:8080   # local server
 ```
 
 | dart-define | Default | Meaning |
 | --- | --- | --- |
-| `API_BASE_URL` | `http://10.0.2.2:8080` | Server address. The default is how the Android emulator reaches your computer. On a real phone use your computer's LAN IP, e.g. `http://192.168.1.20:8080`. On the iOS simulator use `http://localhost:8080`. |
+| `API_BASE_URL` | `https://rebs-hrms-mock-api.onrender.com` | Server address. The default is the hosted mock API. For a server on your own computer use `http://10.0.2.2:8080` on the Android emulator, your computer's LAN IP on a real phone (e.g. `http://192.168.1.20:8080`), or `http://localhost:8080` on the iOS simulator. |
 | `MOCK_LOCATION` | _(empty = real GPS)_ | `inside`, `outside`, `denied`, `denied_forever`, `unavailable` |
 
 In debug builds every API request and response is printed to the console
