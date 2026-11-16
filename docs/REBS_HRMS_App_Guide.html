@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>REBS HRMS - App Guide</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 10.5pt; line-height: 1.5; color: #1f2733; margin: 0;
+  }
+  .cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always; }
+  .kicker { color: #3b6fe0; font-weight: 700; font-size: 9.5pt; letter-spacing: .6px; }
+  .cover h1 { font-size: 30pt; line-height: 1.15; margin: 4px 0 14px; color: #0f1535; }
+  .lead { font-size: 13pt; color: #4a5470; max-width: 150mm; margin: 0 0 26px; }
+  .meta { border-collapse: collapse; }
+  .meta td { padding: 7px 0; vertical-align: top; }
+  .meta td:first-child { color: #7a85a3; width: 42mm; }
+
+  h2 { font-size: 17pt; color: #0f1535; margin: 0 0 12px; padding-bottom: 6px; border-bottom: 2.5px solid #3b6fe0; }
+  section { page-break-before: always; }
+  p { margin: 0 0 10px; }
+
+  table.grid { border-collapse: collapse; width: 100%; margin: 6px 0 14px; }
+  table.grid th, table.grid td { border: 1px solid #d5dcef; padding: 8px 10px; text-align: left; vertical-align: top; }
+  table.grid th { background: #eef2fb; color: #0f1535; }
+  table.grid td:first-child { font-weight: 600; }
+  table.plain td:first-child { font-weight: 400; }
+
+  .screen { display: flex; gap: 16px; padding: 14px 0; border-bottom: 1px solid #d5dcef; page-break-inside: avoid; }
+  .shot { width: 150px; flex: none; }
+  .shot img { width: 150px; border: 1px solid #d5dcef; border-radius: 10px; display: block; }
+  .tag { display: inline-block; background: #eef2fb; color: #3b6fe0; font-weight: 600; font-size: 8.5pt; padding: 2px 10px; border-radius: 10px; }
+  .screen h3 { font-size: 12.5pt; margin: 8px 0 4px; color: #0f1535; }
+  .screen h3 span { color: #3b6fe0; }
+  ul { margin: 4px 0 0; padding-left: 18px; }
+  li { margin-bottom: 3px; }
+
+  .card { border: 1px solid #d5dcef; border-radius: 10px; padding: 12px 16px; margin-bottom: 12px; page-break-inside: avoid; position: relative; }
+  .card h3 { font-size: 12pt; margin: 0 0 6px; color: #0f1535; padding-right: 110px; }
+  .card p { margin-bottom: 6px; }
+  .badge { position: absolute; top: 12px; right: 14px; background: #e3f5e8; color: #1c7a3c; font-weight: 700; font-size: 8pt; padding: 2px 10px; border-radius: 10px; letter-spacing: .4px; }
+  .note { border-left: 4px solid #3b6fe0; background: #f5f7fc; padding: 10px 14px; margin-top: 12px; }
+  code { font-family: Consolas, monospace; font-size: 9.5pt; background: #f1f3f9; padding: 0 3px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="kicker">FLUTTER DEVELOPER ASSIGNMENT · APP GUIDE</div>
+  <h1>REBS HRMS<br>Employee Workspace</h1>
+  <p class="lead">An offline-capable mobile app for one employee. It shows today's attendance, lets the employee check in and out at the office, and apply for leave. Attendance still works without internet and is sent to the server when the connection returns.</p>
+  <table class="meta">
+    <tr><td>Platforms</td><td>Android (built and tested). The iOS project is included but has not been built.</td></tr>
+    <tr><td>Data</td><td>Local mock HTTP server, with a copy saved on the device for offline use</td></tr>
+    <tr><td>Screens</td><td>12</td></tr>
+    <tr><td>Main challenge</td><td>Offline storage and synchronization: all 7 cases implemented</td></tr>
+    <tr><td>In this document</td><td>1. What the app does &nbsp; 2. Every screen explained &nbsp; 3. Offline and sync &nbsp; 4. Technology used</td></tr>
+  </table>
+</div>
+
+<section>
+<h2>1. What the app does</h2>
+<p>The app has three features for the employee, with one sync system working behind them:</p>
+<table class="grid">
+  <tr><th style="width:22%">Feature</th><th style="width:28%">Question it answers</th><th>What it does</th></tr>
+  <tr><td>Home</td><td>What is my status today?</td><td>Shows the employee, today's attendance status, check-in and check-out times, hours worked, leave balance and the latest five attendance days.</td></tr>
+  <tr><td>Attendance</td><td>Can I check in or out now?</td><td>Records a check-in or check-out with the time and GPS position. It is allowed only within 200 m of the office.</td></tr>
+  <tr><td>Leave</td><td>Can I take days off?</td><td>A form for Casual or Sick leave, checked against dates, balance and existing requests, plus a list of all requests with their status.</td></tr>
+  <tr><td>Sync</td><td>Has my attendance reached the server?</td><td>Every attendance action is saved on the phone first and then sent to the server. Each one is marked Pending Sync, Synced or Rejected.</td></tr>
+</table>
+<p><b>Attendance rules.</b> One check-in per working day. Check-out only after check-in. Tapping the button repeatedly creates only one event. The working day follows the company timezone (Asia/Kolkata), not the phone's.</p>
+<p><b>Offline.</b> The dashboard, attendance history and leave requests are saved in a database on the phone, so they can be viewed without internet. Check-in and check-out also work offline. Applying for leave needs a connection.</p>
+<p><b>Server.</b> There is no real REBS backend. The project includes a small mock server that runs on the developer's computer. It repeats every check the app makes and can be switched to behave slowly, fail, or reject requests.</p>
+<p><b>Employee.</b> One preconfigured employee is used. There is no login.</p>
+</section>
+
+<section>
+<h2>2. Every screen explained</h2>
+
+<div class="screen">
+  <div class="shot"></div>
+  <div>
+    <span class="tag">Every launch</span>
+    <h3><span>1.</span> Splash</h3>
+    <p>A short branded launch screen with an "Offline ready" badge. It opens the app after a brief animation. No data is loaded here; each tab loads its own.</p>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="shot"><img src="screenshots/home.png" alt="Home"></div>
+  <div>
+    <span class="tag">Tab 1</span>
+    <h3><span>2.</span> Home (dashboard)</h3>
+    <p>The whole working day at a glance.</p>
+    <ul>
+      <li><b>Employee:</b> greeting with the first name, employee ID and department.</li>
+      <li><b>Today:</b> status chip (Not Checked In, Checked In or Checked Out), a live work timer, check-in and check-out times, and the Check In / Check Out button.</li>
+      <li><b>Leave card:</b> days available in total and per type.</li>
+      <li><b>Sync card:</b> Online or Offline, and how many events are waiting. It shows Online only when the phone has a connection and the server actually answered. Tapping it opens the Sync Center.</li>
+      <li><b>Recent attendance:</b> the latest five days, each with its sync chip.</li>
+      <li><b>Loading and errors:</b> a skeleton while loading, and an error with a retry button when the server answers with an error and nothing is saved.</li>
+      <li><b>Offline:</b> a banner says the data is a saved copy and when it was last updated. Pull down to refresh; the screen also refreshes by itself when the connection returns.</li>
+      <li><b>First launch without a connection:</b> Home still opens. The profile line reads "Profile will load when you are online" and Check In works.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="shot"><img src="screenshots/location_check.png" alt="Location check"></div>
+  <div>
+    <span class="tag">From Check In / Check Out</span>
+    <h3><span>3.</span> Location check</h3>
+    <p>A sheet that verifies the employee is at the office before anything is recorded.</p>
+    <ul>
+      <li>Shows the distance from the office, the 200 m perimeter, the time and the GPS accuracy.</li>
+      <li>"Confirm Check In" appears only after the location is verified.</li>
+      <li>While saving, the button shows a spinner and ignores further taps.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="shot"><img src="screenshots/out_of_range.png" alt="Out of range"></div>
+  <div>
+    <span class="tag">When location fails</span>
+    <h3><span>4.</span> Location problems</h3>
+    <p>The same sheet explains each problem and offers the matching fix.</p>
+    <ul>
+      <li><b>Outside the office area:</b> "You're 840 m from the office. Check-out is allowed within 200 m." with Try again.</li>
+      <li><b>Permission denied:</b> a button to allow location, which asks again.</li>
+      <li><b>Permission permanently denied:</b> a button to open the phone's app settings.</li>
+      <li><b>Location switched off or no GPS fix:</b> a button to turn location on, or Try again.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="shot"></div>
+  <div>
+    <span class="tag">After confirming</span>
+    <h3><span>5.</span> Attendance saved</h3>
+    <p>Confirms that the check-in or check-out was recorded.</p>
+    <ul>
+      <li>Online: "Saved to the server".</li>
+      <li>Offline or server not reachable: "Saved on this device", with a note that it will be sent automatically.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="shot"></div>
+  <div>
+    <span class="tag">Tab 2</span>
+    <h3><span>6.</span> Attendance</h3>
+    <p>A month of attendance history.</p>
+    <ul>
+      <li>A summary card at the top and one row per day with the time range and hours worked.</li>
+      <li>Each day has a chip: Synced, Pending Sync or Rejected. Pending days are tinted amber and rejected days red.</li>
+      <li>Tapping a Rejected chip opens the reason.</li>
+      <li>Stays viewable offline from the saved copy.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="shot"><img src="screenshots/sync_center_pending.png" alt="Sync Center"></div>
+  <div>
+    <span class="tag">From Home</span>
+    <h3><span>7.</span> Sync Center</h3>
+    <p>Shows exactly what is waiting to reach the server.</p>
+    <ul>
+      <li>Online / Offline status, how many events are waiting, and the time events were last delivered to the server.</li>
+      <li><b>Sync Now</b> button to send the queue immediately.</li>
+      <li><b>Queue (in order):</b> waiting events, oldest first, with the number of attempts and the last error.</li>
+      <li><b>Recent sync history:</b> events already Synced or Rejected.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="shot"><img src="screenshots/rejected_event.png" alt="Rejected event"></div>
+  <div>
+    <span class="tag">From a Rejected chip</span>
+    <h3><span>8.</span> Rejected event details</h3>
+    <p>Explains why the server did not accept an event.</p>
+    <ul>
+      <li>Shows the event, its time and the server's reason, for example "Attendance already exists for this day."</li>
+      <li>States that other records were not changed.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="shot"><img src="screenshots/leave.png" alt="Leave"></div>
+  <div>
+    <span class="tag">Tab 3</span>
+    <h3><span>9.</span> Leave</h3>
+    <p>Leave balances and every request the employee has made.</p>
+    <ul>
+      <li>One card per leave type with days left and total allocated.</li>
+      <li>"Apply for Leave" opens the form.</li>
+      <li>Filter by All, Pending, Approved or Rejected, each with a count.</li>
+      <li>Previously loaded requests stay viewable offline, with an offline banner.</li>
+      <li>If the server cannot be reached and nothing is saved yet, the screen opens empty with the offline banner instead of an error.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="shot"><img src="screenshots/leave_form.png" alt="Apply Leave"></div>
+  <div>
+    <span class="tag">From Leave</span>
+    <h3><span>10.</span> Apply Leave</h3>
+    <p>The leave form: type (Casual or Sick), start date, end date and reason.</p>
+    <ul>
+      <li>Start date cannot be before today's company date.</li>
+      <li>End date cannot be before the start date.</li>
+      <li>The reason needs at least 10 characters, not counting spaces.</li>
+      <li>Requested days cannot be more than the available balance.</li>
+      <li>Dates cannot overlap a Pending or Approved request; a warning appears as soon as the dates clash.</li>
+      <li>Each error is shown under its own field.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="shot"></div>
+  <div>
+    <span class="tag">From Apply Leave</span>
+    <h3><span>11.</span> Review request</h3>
+    <p>A summary to check before sending: leave type, dates, number of days, balance after the request, and the reason.</p>
+    <ul>
+      <li>"Submit Request" sends it to the server. It needs a connection; offline, a message says so and nothing is queued.</li>
+      <li>If the server rejects the request, the user is taken back to the form with the server's errors under the fields.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="shot"><img src="screenshots/developer_settings.png" alt="Developer Settings"></div>
+  <div>
+    <span class="tag">Debug builds only</span>
+    <h3><span>12.</span> Developer Settings</h3>
+    <p>Tools for reviewers. Open it with the round button at the top right of Home, or by long-pressing the title in the header.</p>
+    <ul>
+      <li><b>Simulate location:</b> Real GPS, Inside office, Outside office, Permission denied, Permanently denied, GPS unavailable.</li>
+      <li><b>Mock API scenario:</b> Normal success, Slow network, Network timeout, Timeout after save, and the server-error, duplicate-attendance and leave-rejection scenarios.</li>
+      <li>A reset restores the server's starting data.</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<section>
+<h2>3. Offline and sync</h2>
+<p>This is the main engineering challenge of the assignment. For each case, this section says what the app does and how to check it. The scenarios are switched in Developer Settings (screen 12).</p>
+
+<div class="card">
+  <span class="badge">IMPLEMENTED</span>
+  <h3>1. Attendance while offline</h3>
+  <p><b>What the app does:</b> a check-in or check-out made without internet is saved on the phone and shown as "Pending Sync". Online and offline use the same path: the event is always saved locally first and sent afterwards.</p>
+  <p><b>How to check:</b> turn on airplane mode, check in, and open the Sync Center. The event is in the queue.</p>
+</div>
+
+<div class="card">
+  <span class="badge">IMPLEMENTED</span>
+  <h3>2. First launch with no connection</h3>
+  <p><b>What the app does:</b> if the server cannot be reached and nothing has been saved yet, Home still opens in offline mode instead of showing an error screen. The employee's profile is filled in later, but today's card and Check In work straight away. When the connection returns, the screen refreshes by itself.</p>
+  <p><b>How to check:</b> clear the app's data, stop the mock server (or turn on airplane mode) and open the app. Home shows the offline banner and "Profile will load when you are online". Start the server again and the profile appears.</p>
+</div>
+
+<div class="card">
+  <span class="badge">IMPLEMENTED</span>
+  <h3>3. Pending events survive an app restart</h3>
+  <p><b>What the app does:</b> waiting events are stored in a SQLite database, so they are still there after the app is closed and reopened. They are sent when the app next starts with a connection.</p>
+  <p><b>How to check:</b> with an event pending, close the app fully and open it again. The event is still in the Sync Center queue.</p>
+</div>
+
+<div class="card">
+  <span class="badge">IMPLEMENTED</span>
+  <h3>4. Sync Now and automatic sync, in order</h3>
+  <p><b>What the app does:</b> events are sent one at a time, oldest first. If one cannot be sent, everything behind it waits, so a check-out never reaches the server before its check-in. Sync runs on app start, when the connection returns, when "Sync Now" is tapped, and on a retry timer that waits longer after each failure (2 s up to 60 s).</p>
+  <p><b>How to check:</b> check in and check out offline, turn airplane mode off, and watch both events become Synced in order. Or tap "Sync Now".</p>
+</div>
+
+<div class="card">
+  <span class="badge">IMPLEMENTED</span>
+  <h3>5. Server says attendance already exists</h3>
+  <p><b>What the app does:</b> the event is marked Rejected and keeps the server's reason. It is not retried. If a check-in is rejected, its waiting check-out for the same day is rejected too, because it could never succeed.</p>
+  <p><b>How to check:</b> select the duplicate-attendance scenario, check in, then tap the Rejected chip to read the reason.</p>
+</div>
+
+<div class="card">
+  <span class="badge">IMPLEMENTED</span>
+  <h3>6. Timeout after the server already saved the event</h3>
+  <p><b>What the app does:</b> the app cannot know whether the server saved the event, so it keeps it Pending and sends it again with the same ID. The server recognises the ID and answers with the original record instead of creating a second one.</p>
+  <p><b>How to check:</b> select "Timeout after save" and check in. The event stays Pending. Switch back to "Normal success" and tap "Sync Now". The event becomes Synced and the server holds exactly one record.</p>
+</div>
+
+<div class="card">
+  <span class="badge">IMPLEMENTED</span>
+  <h3>7. No duplicates from repeated taps or retries</h3>
+  <p><b>What the app does:</b> each event gets a unique ID (UUID) when it is created. The ID never changes across retries and is sent as the <code>Idempotency-Key</code>. Duplicates are also blocked at three levels in the app: the button locks while saving, the attendance rules count events that are still pending, and the database allows only one check-in and one check-out per day.</p>
+  <p><b>How to check:</b> tap "Confirm Check In" several times quickly. Only one event appears in the Sync Center.</p>
+</div>
+
+<div class="note">Syncing while the app is fully closed is outside the assignment's scope and is not implemented. Sync runs only while the app is open.</div>
+</section>
+
+<section>
+<h2>4. Technology used</h2>
+<table class="grid plain">
+  <tr><th style="width:30%">Area</th><th>What is used</th></tr>
+  <tr><td>Framework</td><td>Flutter and Dart (null safety)</td></tr>
+  <tr><td>State management</td><td>GetX (reactive state, dependency injection and routing)</td></tr>
+  <tr><td>Architecture</td><td>Feature-based Clean Architecture: each feature has data, domain and presentation layers. Business rules are plain Dart classes, not in widgets.</td></tr>
+  <tr><td>HTTP client</td><td>Dio, with request and response logging in debug builds</td></tr>
+  <tr><td>Local database</td><td>sqflite (SQLite): saved copies of server data and the queue of waiting events</td></tr>
+  <tr><td>Location</td><td>geolocator</td></tr>
+  <tr><td>Icons</td><td>flutter_svg</td></tr>
+  <tr><td>Connectivity</td><td>connectivity_plus</td></tr>
+  <tr><td>Event identity</td><td>uuid (UUID v4, used as the idempotency key)</td></tr>
+  <tr><td>Dates and timezone</td><td>intl, timezone (company timezone Asia/Kolkata)</td></tr>
+  <tr><td>Mock server</td><td>A separate Dart project using shelf and shelf_router, with 7 switchable scenarios</td></tr>
+  <tr><td>Automated tests</td><td>160 app tests (unit and widget) and 33 mock-server tests, all passing</td></tr>
+</table>
+<div class="note">The source code, setup steps, mock server instructions and known limitations are in the project's README.</div>
+</section>
+
+</body>
+</html>

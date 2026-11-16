@@ -1,0 +1,4 @@
+# Declares the tag used by test/integration/live_server_test.dart.
+# Those tests skip themselves unless MOCK_SERVER_URL is set.
+tags:
+  live:
