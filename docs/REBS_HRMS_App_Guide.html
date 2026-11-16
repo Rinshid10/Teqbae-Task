@@ -53,8 +53,8 @@
   <p class="lead">An offline-capable mobile app for one employee. It shows today's attendance, lets the employee check in and out at the office, and apply for leave. Attendance still works without internet and is sent to the server when the connection returns.</p>
   <table class="meta">
     <tr><td>Platforms</td><td>Android (built and tested). The iOS project is included but has not been built.</td></tr>
-    <tr><td>Data</td><td>Local mock HTTP server, with a copy saved on the device for offline use</td></tr>
-    <tr><td>Screens</td><td>12</td></tr>
+    <tr><td>Data</td><td>Mock HTTP API, hosted live and runnable locally, with a copy saved on the device for offline use</td></tr>
+    <tr><td>Screens</td><td>12, on four tabs: Home, Attendance, Leave and Settings</td></tr>
     <tr><td>Main challenge</td><td>Offline storage and synchronization: all 7 cases implemented</td></tr>
     <tr><td>In this document</td><td>1. What the app does &nbsp; 2. Every screen explained &nbsp; 3. Offline and sync &nbsp; 4. Technology used</td></tr>
   </table>
@@ -62,17 +62,19 @@
 
 <section>
 <h2>1. What the app does</h2>
-<p>The app has three features for the employee, with one sync system working behind them:</p>
+<p>The app has three features for the employee, one sync system working behind them, and a Settings tab with tools for reviewers:</p>
 <table class="grid">
   <tr><th style="width:22%">Feature</th><th style="width:28%">Question it answers</th><th>What it does</th></tr>
   <tr><td>Home</td><td>What is my status today?</td><td>Shows the employee, today's attendance status, check-in and check-out times, hours worked, leave balance and the latest five attendance days.</td></tr>
   <tr><td>Attendance</td><td>Can I check in or out now?</td><td>Records a check-in or check-out with the time and GPS position. It is allowed only within 200 m of the office.</td></tr>
   <tr><td>Leave</td><td>Can I take days off?</td><td>A form for Casual or Sick leave, checked against dates, balance and existing requests, plus a list of all requests with their status.</td></tr>
   <tr><td>Sync</td><td>Has my attendance reached the server?</td><td>Every attendance action is saved on the phone first and then sent to the server. Each one is marked Pending Sync, Synced or Rejected.</td></tr>
+  <tr><td>Settings</td><td>How can I test this without being at the office?</td><td>Pretend to be inside or outside the office, or move the office to the phone's real position. Also resets all data.</td></tr>
 </table>
 <p><b>Attendance rules.</b> One check-in per working day. Check-out only after check-in. Tapping the button repeatedly creates only one event. The working day follows the company timezone (Asia/Kolkata), not the phone's.</p>
-<p><b>Offline.</b> The dashboard, attendance history and leave requests are saved in a database on the phone, so they can be viewed without internet. Check-in and check-out also work offline. Applying for leave needs a connection.</p>
-<p><b>Server.</b> There is no real REBS backend. The project includes a small mock server that runs on the developer's computer. It repeats every check the app makes and can be switched to behave slowly, fail, or reject requests.</p>
+<p><b>Offline.</b> The dashboard, attendance history and leave requests are saved on the phone (in Hive), so they can be viewed without internet. Check-in and check-out also work offline. Applying for leave needs a connection.</p>
+<p><b>Server.</b> There is no real REBS backend. The project includes a small mock server. A copy is hosted at <code>https://rebs-hrms-mock-api.onrender.com</code>, which the app uses by default, so the APK works on any phone with no setup; it can also be run on the developer's computer. It repeats every check the app makes and can be switched to behave slowly, fail, or reject requests.</p>
+<p><b>Starting data.</b> The server starts empty apart from the employee and the leave allowance (Casual 12, Sick 8). Attendance and leave requests appear only after you check in or apply. The hosted copy sleeps when idle, so the first request can take up to a minute, and it forgets its data when it restarts.</p>
 <p><b>Employee.</b> One preconfigured employee is used. There is no login.</p>
 </section>
 
@@ -99,7 +101,7 @@
       <li><b>Today:</b> status chip (Not Checked In, Checked In or Checked Out), a live work timer, check-in and check-out times, and the Check In / Check Out button.</li>
       <li><b>Leave card:</b> days available in total and per type.</li>
       <li><b>Sync card:</b> Online or Offline, and how many events are waiting. It shows Online only when the phone has a connection and the server actually answered. Tapping it opens the Sync Center.</li>
-      <li><b>Recent attendance:</b> the latest five days, each with its sync chip.</li>
+      <li><b>Recent attendance:</b> the latest five days, each with its sync chip. It is empty until the first check-in.</li>
       <li><b>Loading and errors:</b> a skeleton while loading, and an error with a retry button when the server answers with an error and nothing is saved.</li>
       <li><b>Offline:</b> a banner says the data is a saved copy and when it was last updated. Pull down to refresh; the screen also refreshes by itself when the connection returns.</li>
       <li><b>First launch without a connection:</b> Home still opens. The profile line reads "Profile will load when you are online" and Check In works.</li>
@@ -201,7 +203,7 @@
     <ul>
       <li>One card per leave type with days left and total allocated.</li>
       <li>"Apply for Leave" opens the form.</li>
-      <li>Filter by All, Pending, Approved or Rejected, each with a count.</li>
+      <li>Filter by All, Pending, Approved or Rejected, each with a count. The list is empty until a request is made, and new requests stay Pending because the mock server has no approval step.</li>
       <li>Previously loaded requests stay viewable offline, with an offline banner.</li>
       <li>If the server cannot be reached and nothing is saved yet, the screen opens empty with the offline banner instead of an error.</li>
     </ul>
@@ -239,15 +241,16 @@
 </div>
 
 <div class="screen">
-  <div class="shot"><img src="screenshots/developer_settings.png" alt="Developer Settings"></div>
+  <div class="shot"></div>
   <div>
-    <span class="tag">Debug builds only</span>
-    <h3><span>12.</span> Developer Settings</h3>
-    <p>Tools for reviewers. Open it with the round button at the top right of Home, or by long-pressing the title in the header.</p>
+    <span class="tag">Tab 4</span>
+    <h3><span>12.</span> Settings (reviewer tools)</h3>
+    <p>Tools for testing the app without being at the office. It is the fourth tab in the bottom bar, in every build.</p>
     <ul>
-      <li><b>Simulate location:</b> Real GPS, Inside office, Outside office, Permission denied, Permanently denied, GPS unavailable.</li>
-      <li><b>Mock API scenario:</b> Normal success, Slow network, Network timeout, Timeout after save, and the server-error, duplicate-attendance and leave-rejection scenarios.</li>
-      <li>A reset clears the server's data.</li>
+      <li><b>Simulate location:</b> Real GPS, Inside office (about 30 m away) or Outside office (about 840 m away). The choice applies to the next check-in or check-out.</li>
+      <li><b>Office parameters:</b> the office coordinates, the 200 m radius, the timezone and the server address in use.</li>
+      <li><b>Use my current location:</b> makes the phone's real position the office, so Real GPS counts as inside wherever the reviewer is. The Coordinates row updates and the button turns into a disabled "Using your current location" status. It needs a connection, because the office is changed on the mock server so that the app and the server check the same place.</li>
+      <li><b>Reset mock data &amp; local database:</b> clears the data on the phone and on the mock server, puts the office back to the default, and enables the location button again.</li>
     </ul>
   </div>
 </div>
@@ -255,7 +258,9 @@
 
 <section>
 <h2>3. Offline and sync</h2>
-<p>This is the main engineering challenge of the assignment. For each case, this section says what the app does and how to check it. The scenarios are switched in Developer Settings (screen 12).</p>
+<p>This is the main engineering challenge of the assignment. For each case, this section says what the app does and how to check it.</p>
+<p>Some checks need the mock server to misbehave. That is switched from a terminal, not inside the app. Replace <code>NAME</code> with the scenario, and use <code>success</code> to go back to normal:</p>
+<p><code>curl -X POST https://rebs-hrms-mock-api.onrender.com/__mock/scenario -H "content-type: application/json" -d "{\"name\":\"NAME\"}"</code></p>
 
 <div class="card">
   <span class="badge">IMPLEMENTED</span>
@@ -268,13 +273,13 @@
   <span class="badge">IMPLEMENTED</span>
   <h3>2. First launch with no connection</h3>
   <p><b>What the app does:</b> if the server cannot be reached and nothing has been saved yet, Home still opens in offline mode instead of showing an error screen. The employee's profile is filled in later, but today's card and Check In work straight away. When the connection returns, the screen refreshes by itself.</p>
-  <p><b>How to check:</b> clear the app's data, stop the mock server (or turn on airplane mode) and open the app. Home shows the offline banner and "Profile will load when you are online". Start the server again and the profile appears.</p>
+  <p><b>How to check:</b> clear the app's data, turn on airplane mode (or stop the mock server, if you run it locally) and open the app. Home shows the offline banner and "Profile will load when you are online". Reconnect and the profile appears.</p>
 </div>
 
 <div class="card">
   <span class="badge">IMPLEMENTED</span>
   <h3>3. Pending events survive an app restart</h3>
-  <p><b>What the app does:</b> waiting events are stored in a SQLite database, so they are still there after the app is closed and reopened. They are sent when the app next starts with a connection.</p>
+  <p><b>What the app does:</b> waiting events are stored on disk in a Hive box, so they are still there after the app is closed and reopened. They are sent when the app next starts with a connection.</p>
   <p><b>How to check:</b> with an event pending, close the app fully and open it again. The event is still in the Sync Center queue.</p>
 </div>
 
@@ -289,20 +294,20 @@
   <span class="badge">IMPLEMENTED</span>
   <h3>5. Server says attendance already exists</h3>
   <p><b>What the app does:</b> the event is marked Rejected and keeps the server's reason. It is not retried. If a check-in is rejected, its waiting check-out for the same day is rejected too, because it could never succeed.</p>
-  <p><b>How to check:</b> select the duplicate-attendance scenario, check in, then tap the Rejected chip to read the reason.</p>
+  <p><b>How to check:</b> switch the server to <code>duplicate_attendance</code>, check in, then tap the Rejected chip to read the reason.</p>
 </div>
 
 <div class="card">
   <span class="badge">IMPLEMENTED</span>
   <h3>6. Timeout after the server already saved the event</h3>
   <p><b>What the app does:</b> the app cannot know whether the server saved the event, so it keeps it Pending and sends it again with the same ID. The server recognises the ID and answers with the original record instead of creating a second one.</p>
-  <p><b>How to check:</b> select "Timeout after save" and check in. The event stays Pending. Switch back to "Normal success" and tap "Sync Now". The event becomes Synced and the server holds exactly one record.</p>
+  <p><b>How to check:</b> switch the server to <code>timeout_after_commit</code> and check in. The event stays Pending. Switch back to <code>success</code> and tap "Sync Now". The event becomes Synced and the server holds exactly one record.</p>
 </div>
 
 <div class="card">
   <span class="badge">IMPLEMENTED</span>
   <h3>7. No duplicates from repeated taps or retries</h3>
-  <p><b>What the app does:</b> each event gets a unique ID (UUID) when it is created. The ID never changes across retries and is sent as the <code>Idempotency-Key</code>. Duplicates are also blocked at three levels in the app: the button locks while saving, the attendance rules count events that are still pending, and the database allows only one check-in and one check-out per day.</p>
+  <p><b>What the app does:</b> each event gets a unique ID (UUID) when it is created. The ID never changes across retries and is sent as the <code>Idempotency-Key</code>. Duplicates are also blocked at three levels in the app: the button locks while saving, the attendance rules count events that are still pending, and the outbox storage refuses a second check-in or check-out for the same day.</p>
   <p><b>How to check:</b> tap "Confirm Check In" several times quickly. Only one event appears in the Sync Center.</p>
 </div>
 
@@ -317,16 +322,17 @@
   <tr><td>State management</td><td>GetX (reactive state, dependency injection and routing)</td></tr>
   <tr><td>Architecture</td><td>Feature-based Clean Architecture: each feature has data, domain and presentation layers. Business rules are plain Dart classes, not in widgets.</td></tr>
   <tr><td>HTTP client</td><td>Dio, with request and response logging in debug builds</td></tr>
-  <tr><td>Local database</td><td>sqflite (SQLite): saved copies of server data and the queue of waiting events</td></tr>
+  <tr><td>Local storage</td><td>Hive: saved copies of server data and the queue of waiting events</td></tr>
   <tr><td>Location</td><td>geolocator</td></tr>
   <tr><td>Icons</td><td>flutter_svg</td></tr>
   <tr><td>Connectivity</td><td>connectivity_plus</td></tr>
   <tr><td>Event identity</td><td>uuid (UUID v4, used as the idempotency key)</td></tr>
   <tr><td>Dates and timezone</td><td>intl, timezone (company timezone Asia/Kolkata)</td></tr>
-  <tr><td>Mock server</td><td>A separate Dart project using shelf and shelf_router, with 7 switchable scenarios</td></tr>
-  <tr><td>Automated tests</td><td>160 app tests (unit and widget) and 33 mock-server tests, all passing</td></tr>
+  <tr><td>Mock server</td><td>A separate Dart project using shelf and shelf_router, with 7 switchable scenarios and a movable office location</td></tr>
+  <tr><td>Hosting</td><td>The mock server runs as a Docker container on Render (free plan)</td></tr>
+  <tr><td>Automated tests</td><td>166 app tests (unit and widget) and 35 mock-server tests, all passing</td></tr>
 </table>
-<div class="note">The source code, setup steps, mock server instructions and known limitations are in the project's README.</div>
+<div class="note">The screenshots in this guide were taken before the app's colour changed from green to blue and before the sample data was removed, so colours and list contents differ from the current app. The layout is the same. The source code, setup steps, mock server instructions and known limitations are in the project's README.</div>
 </section>
 
 </body>

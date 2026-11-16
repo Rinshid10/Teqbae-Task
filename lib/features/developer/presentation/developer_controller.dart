@@ -59,6 +59,11 @@ class DeveloperController extends GetxController {
   final isBusy = false.obs;
   final office = Rxn<OfficeInfoUi>();
 
+  /// True once "use my current location" has been applied in this run of
+  /// the app. The button is then shown as a disabled status; the reset
+  /// button puts the office back and enables it again.
+  final usingCurrentLocation = false.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -92,37 +97,12 @@ class DeveloperController extends GetxController {
     try {
       switch (await _deviceLocation.currentPosition()) {
         case Success(:final value):
-          await _applyOffice(value.lat, value.lng);
+          usingCurrentLocation.value =
+              await _applyOffice(value.lat, value.lng);
         case Fail(:final failure):
           // Permission denied, location off, no fix: say which.
           AppMessenger.show(failure.message);
       }
-    } finally {
-      isBusy.value = false;
-    }
-  }
-
-  /// Checks typed coordinates. Returns the error for each field that is
-  /// wrong (empty map = valid), keyed 'lat' / 'lng'.
-  Map<String, String> validateCoordinates(String lat, String lng) {
-    final latitude = double.tryParse(lat.trim());
-    final longitude = double.tryParse(lng.trim());
-    return {
-      if (latitude == null || latitude.abs() > 90)
-        'lat': AppStrings.devLatitudeInvalid,
-      if (longitude == null || longitude.abs() > 180)
-        'lng': AppStrings.devLongitudeInvalid,
-    };
-  }
-
-  /// Moves the office to typed coordinates. Returns true when it was saved.
-  Future<bool> setOfficeCoordinates(String lat, String lng) async {
-    if (isBusy.value) return false;
-    if (validateCoordinates(lat, lng).isNotEmpty) return false;
-    isBusy.value = true;
-    try {
-      return await _applyOffice(
-          double.parse(lat.trim()), double.parse(lng.trim()));
     } finally {
       isBusy.value = false;
     }
@@ -152,6 +132,8 @@ class DeveloperController extends GetxController {
       // Best effort: local data is cleared even if the server is down.
       final server = await _repository.resetServer();
       await _repository.clearLocalData();
+      // The server put the office back to its default.
+      if (server.isSuccess) usingCurrentLocation.value = false;
       AppMessenger.show(server.isSuccess
           ? AppStrings.devResetDone
           : AppStrings.devResetLocalOnly);

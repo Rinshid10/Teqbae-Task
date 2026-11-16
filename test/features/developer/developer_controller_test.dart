@@ -101,6 +101,12 @@ void main() {
     expect(office.lng, here.lng);
     expect(controller.office.value?.coordinates, '12.9716° N, 77.5946° E');
     expect(controller.isBusy.value, isFalse);
+    // The button now shows as a disabled "using your current location".
+    expect(controller.usingCurrentLocation.value, isTrue);
+
+    // Reset puts the office back, so the button is offered again.
+    await controller.resetEverything();
+    expect(controller.usingCurrentLocation.value, isFalse);
   });
 
   test('a location problem leaves the office where it was', () async {
@@ -111,29 +117,16 @@ void main() {
 
     expect(repository.moves, isEmpty);
     expect((await getOffice()).lat, testOffice.lat);
-  });
-
-  test('typed coordinates are saved, including negative ones', () async {
-    final saved = await controller.setOfficeCoordinates(' -33.8688 ', '151.2093');
-
-    expect(saved, isTrue);
-    expect(repository.moves.single, (lat: -33.8688, lng: 151.2093));
-    expect(controller.office.value?.coordinates, '33.8688° S, 151.2093° E');
-  });
-
-  test('impossible or empty coordinates are refused per field', () async {
-    expect(controller.validateCoordinates('91', '77.59').keys, ['lat']);
-    expect(controller.validateCoordinates('12.97', '-181').keys, ['lng']);
-    expect(controller.validateCoordinates('', 'abc').keys, ['lat', 'lng']);
-
-    expect(await controller.setOfficeCoordinates('91', '77.59'), isFalse);
-    expect(repository.moves, isEmpty);
+    expect(controller.usingCurrentLocation.value, isFalse);
   });
 
   test('when the server cannot be reached nothing changes', () async {
     repository.answer = const Fail(NetworkFailure());
 
-    expect(await controller.setOfficeCoordinates('12.9716', '77.5946'), isFalse);
+    await controller.useCurrentLocationAsOffice();
+
     expect((await getOffice()).lat, testOffice.lat);
+    // Not applied, so the button stays available for another try.
+    expect(controller.usingCurrentLocation.value, isFalse);
   });
 }

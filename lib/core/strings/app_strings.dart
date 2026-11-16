@@ -325,18 +325,10 @@ abstract final class AppStrings {
   static const devOfficeParameters = 'Office parameters';
   static const devLocked = 'For testing';
   static const devUseCurrentLocation = 'Use my current location';
-  static const devEnterCoordinates = 'Enter coordinates';
+  static const devUsingCurrentLocation = 'Using your current location';
   static const devOfficeHint =
       'Move the office to where you are, so check-in can be tested with '
       'real GPS.';
-  static const devOfficeSheetTitle = 'Office location';
-  static const devLatitude = 'Latitude';
-  static const devLongitude = 'Longitude';
-  static const devLatitudeHint = 'e.g. 9.9312';
-  static const devLongitudeHint = 'e.g. 76.2673';
-  static const devSaveOffice = 'Save office location';
-  static const devLatitudeInvalid = 'Enter a latitude between -90 and 90.';
-  static const devLongitudeInvalid = 'Enter a longitude between -180 and 180.';
   static const devOfficeUpdated = 'Office location updated';
   static const devCoordinates = 'Coordinates';
   static const devRadius = 'Radius limit';

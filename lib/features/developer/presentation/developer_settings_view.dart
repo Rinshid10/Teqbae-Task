@@ -9,7 +9,6 @@ import '../../../core/theme/app_text.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_icon.dart';
-import '../../../core/widgets/app_sheet.dart';
 import '../../../core/widgets/content_width.dart';
 import '../../../core/widgets/pressable_scale.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -229,29 +228,21 @@ class DeveloperSettingsView extends GetView<DeveloperController> {
                       AppText.caption.copyWith(color: AppColors.textTertiary),
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                Obx(
-                  () => SecondaryButton(
-                    label: AppStrings.devUseCurrentLocation,
-                    icon: AppIcons.gpsCrosshair,
-                    onPressed: controller.isBusy.value
+                Obx(() {
+                  // Once the office is the phone's own position there is
+                  // nothing more to do: the button turns into a status.
+                  final used = controller.usingCurrentLocation.value;
+                  return SecondaryButton(
+                    label: used
+                        ? AppStrings.devUsingCurrentLocation
+                        : AppStrings.devUseCurrentLocation,
+                    icon: used ? AppIcons.checkCircle : AppIcons.gpsCrosshair,
+                    color: used ? AppColors.success : AppColors.textPrimary,
+                    onPressed: used || controller.isBusy.value
                         ? null
                         : controller.useCurrentLocationAsOffice,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Obx(
-                  () => SecondaryButton(
-                    label: AppStrings.devEnterCoordinates,
-                    icon: AppIcons.building,
-                    onPressed: controller.isBusy.value
-                        ? null
-                        : () => showAppSheet<void>(
-                              context,
-                              builder: (_) =>
-                                  _OfficeCoordinatesSheet(controller),
-                            ),
-                  ),
-                ),
+                  );
+                }),
                 const SizedBox(height: AppSpacing.lg),
 
                 Obx(
@@ -274,134 +265,6 @@ class DeveloperSettingsView extends GetView<DeveloperController> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Bottom sheet for typing the office latitude and longitude.
-class _OfficeCoordinatesSheet extends StatefulWidget {
-  const _OfficeCoordinatesSheet(this.controller);
-
-  final DeveloperController controller;
-
-  @override
-  State<_OfficeCoordinatesSheet> createState() =>
-      _OfficeCoordinatesSheetState();
-}
-
-class _OfficeCoordinatesSheetState extends State<_OfficeCoordinatesSheet> {
-  final _lat = TextEditingController();
-  final _lng = TextEditingController();
-  Map<String, String> _errors = const {};
-
-  @override
-  void dispose() {
-    _lat.dispose();
-    _lng.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    final errors =
-        widget.controller.validateCoordinates(_lat.text, _lng.text);
-    setState(() => _errors = errors);
-    if (errors.isNotEmpty) return;
-
-    final saved =
-        await widget.controller.setOfficeCoordinates(_lat.text, _lng.text);
-    if (saved && mounted) Navigator.of(context).pop();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          AppSpacing.page, AppSpacing.sm, AppSpacing.page, AppSpacing.lg),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(AppStrings.devOfficeSheetTitle, style: AppText.title),
-          const SizedBox(height: AppSpacing.md),
-          _CoordinateField(
-            controller: _lat,
-            label: AppStrings.devLatitude,
-            hint: AppStrings.devLatitudeHint,
-            error: _errors['lat'],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          _CoordinateField(
-            controller: _lng,
-            label: AppStrings.devLongitude,
-            hint: AppStrings.devLongitudeHint,
-            error: _errors['lng'],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Obx(
-            () => PrimaryButton(
-              label: AppStrings.devSaveOffice,
-              isLoading: widget.controller.isBusy.value,
-              onPressed: widget.controller.isBusy.value ? null : _save,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// One labelled number field with its error underneath.
-class _CoordinateField extends StatelessWidget {
-  const _CoordinateField({
-    required this.controller,
-    required this.label,
-    required this.hint,
-    this.error,
-  });
-
-  final TextEditingController controller;
-  final String label;
-  final String hint;
-  final String? error;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: AppText.labelMedium),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.panel,
-            borderRadius: BorderRadius.circular(12),
-            border: error == null
-                ? null
-                : Border.all(color: AppColors.danger, width: 1),
-          ),
-          child: TextField(
-            controller: controller,
-            // Signed, because southern and western coordinates are negative.
-            keyboardType: const TextInputType.numberWithOptions(
-                signed: true, decimal: true),
-            style: AppText.input,
-            cursorColor: AppColors.brand,
-            decoration: InputDecoration(
-              isCollapsed: true,
-              border: InputBorder.none,
-              hintText: hint,
-              hintStyle:
-                  AppText.input.copyWith(color: AppColors.textTertiary),
-            ),
-          ),
-        ),
-        if (error != null) ...[
-          const SizedBox(height: 4),
-          Text(error!,
-              style: AppText.caption.copyWith(color: AppColors.danger)),
-        ],
-      ],
     );
   }
 }

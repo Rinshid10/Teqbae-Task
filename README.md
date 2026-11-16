@@ -12,7 +12,8 @@ offline), see their dashboard, and request leave. The focus is on
 | Attendance | Geofenced check-in / check-out with a "verify location, then confirm" step; written to a local outbox first and synced in the background; monthly history with a Pending / Synced / Rejected chip per day |
 | Leave | Balances, request list with filters, validated form (dates, balance, overlap, reason) and a review step; sending needs a connection; the list is cached for offline viewing |
 | Sync | Outbox in Hive, strict ordering, idempotent retries, rejection handling, backoff; a Sync Center screen with "Sync Now" |
-| Mock API | Separate Dart project with full server-side re-validation and switchable failure scenarios |
+| Mock API | Separate Dart project with full server-side re-validation and switchable failure scenarios; hosted live, and runnable locally |
+| Settings | Reviewer tools as a fourth tab: simulate a location, move the office to the phone's position, reset all data |
 
 Stack: Flutter 3.38 / Dart 3.10, GetX, Dio, Hive, geolocator,
 connectivity_plus, uuid, intl, timezone, flutter_svg. Tests: flutter_test,
@@ -24,9 +25,14 @@ Taken on an Android emulator against the mock server. "Sync Center" was
 captured with the `server_error` scenario active, so the check-out is
 waiting in the outbox; "Rejected event" with `duplicate_attendance`.
 
-> **These images are out of date.** They were taken before the colour
-> changed from green to blue and before the system font replaced Inter.
-> The layout is the same. Retake them before submitting.
+> **These images are out of date.** Retake them before submitting.
+> - They were taken before the colour changed from green to blue and
+>   before the system font replaced Inter.
+> - "Home" and "Leave" show sample history and requests that the mock
+>   server no longer starts with.
+> - "Developer Settings" shows the old screen (six location modes and a
+>   mock-scenario list). It is now the Settings tab with three location
+>   modes and a "Use my current location" button.
 
 | Home | Location check | Out of range | Sync Center (pending) |
 | --- | --- | --- | --- |
@@ -287,8 +293,8 @@ MOCK_SERVER_URL=http://localhost:8090 flutter test test/integration           # 
 
 ## Simulating location
 
-The office is at 9.9312, 76.2673 (Kochi) with a 200 m radius, so real GPS
-will normally be "outside". Three ways to test:
+The office starts at 9.9312, 76.2673 (Kochi) with a 200 m radius, so real
+GPS will normally be "outside". Three ways to test:
 
 1. **At launch** — `--dart-define=MOCK_LOCATION=<mode>`
 2. **At runtime** — open the **Settings** tab (the fourth item in the
@@ -298,15 +304,20 @@ will normally be "outside". Three ways to test:
    "Simulate location"; it applies to the next check, with no restart.
    The three failure modes (`denied`, `denied_forever`, `unavailable`)
    are available at launch only.
-
 3. **Move the office to you** — on the same Settings tab, under "Office
    parameters", **Use my current location** sets the office to the
-   phone's real GPS position, and **Enter coordinates** takes a latitude
-   and longitude. After that, Real GPS is "inside" wherever you are. The
-   change is made on the mock server (`POST /__mock/office`) and read back
-   through `/employee/me`, so the app's check and the server's re-check
-   use the same office. It needs a connection, it affects everyone using
-   that server, and the reset button puts the office back.
+   phone's real GPS position (the real one, even while a simulated
+   location is selected). After that, Real GPS is "inside" wherever you
+   are. The button then turns into a disabled "Using your current
+   location" status, and the Coordinates row shows the new position.
+   - The change is made on the mock server (`POST /__mock/office`) and
+     read back through `/employee/me`, so the app's check and the
+     server's re-check use the same office.
+   - It needs a connection, and it moves the office for everyone using
+     that server.
+   - **Reset mock data & local database** puts the office back to Kochi
+     and enables the button again. Restarting the app also enables the
+     button, but does not move the office back.
 
 | Mode | Behaviour | What the UI shows |
 | --- | --- | --- |
@@ -323,6 +334,22 @@ opens the system location settings.
 Design: the domain depends on a `LocationService` interface.
 `DeviceLocationService` (geolocator) and `MockLocationService` implement
 it; `SwitchableLocationService` forwards to one or the other.
+
+## Mock server data and control endpoints
+
+The server starts empty: no attendance and no leave requests. The only
+fixed data is the employee (`EMP-1042`) and the yearly leave allowance
+(Casual 12, Sick 8). Everything else is created through the API, so
+"Recent attendance" and the leave list are empty until you check in or
+apply. New leave requests stay `PENDING`: the mock server has no approval
+step, so Approved and Rejected requests appear only in the tests.
+
+| Control endpoint | What it does |
+| --- | --- |
+| `GET /__mock/scenario` | The active scenario |
+| `POST /__mock/scenario` `{"name": "..."}` | Switch scenario (table below) |
+| `POST /__mock/office` `{"lat": ..., "lng": ...}` | Move the office geofence (used by "Use my current location") |
+| `POST /__mock/reset` | Clear all data, restore the `success` scenario and the default office |
 
 ## Mock scenarios
 
@@ -486,13 +513,16 @@ treat device GPS and device clocks as untrusted input (see Limitations).
 - Attendance rules in the domain layer, company-timezone day boundary,
   three-layer duplicate protection, GPS capture, geofence with a friendly
   message, a distinct message and action per location problem
-- Location simulation via dart-define and the in-app Developer Settings
+- Location simulation via dart-define and the in-app Settings tab, plus
+  "Use my current location" to move the office so real GPS can be tested
+  from anywhere
 - Hive cache for employee, attendance, leave balance and leave requests
 - Outbox sync: ordering, mutex, idempotency, rejection cascade, backoff,
   all triggers, per-event status chips with rejection reasons
 - Leave form with inline local and server validation, a review step, and
   online-only submit
-- Mock server: all endpoints, re-validation, seven scenarios, reset, request log
+- Mock server: all endpoints, re-validation, seven scenarios, movable
+  office, reset, request log; hosted live on Render and runnable locally
 - Works with no server at all, even on a first launch: Home opens in
   offline mode, check-in/out is saved locally, and everything syncs and
   refreshes by itself once the server answers again
@@ -502,9 +532,9 @@ treat device GPS and device clocks as untrusted input (see Limitations).
 - API request/response logging in debug builds
 - All 13 Figma screens, including the verify-then-confirm location sheet,
   check-in confirmation, Sync Center, leave review step and in-app
-  Developer Settings (location simulation, reset)
+  Settings tab (location simulation, office location, reset)
 - Tablet width cap and large-font safe layouts
-- Tests: 163 app tests (unit + widget), 33 server tests, 6 live-server tests
+- Tests: 166 app tests (unit + widget), 35 server tests, 6 live-server tests
 
 ## Limitations / unfinished
 
@@ -529,6 +559,15 @@ treat device GPS and device clocks as untrusted input (see Limitations).
 - **Developer Settings ships in release builds too.** That is deliberate
   for a test submission, so reviewers can simulate locations in any
   build. A real product would hide it from production.
+- **Scenarios cannot be switched inside the app.** The mock-scenario list
+  was removed from Settings on request; use the `curl` commands above.
+  The permission-denied, blocked and no-GPS location cases likewise need
+  the launch flag or a real denied permission.
+- **The hosted mock server is shared and forgetful.** It sleeps when idle
+  (slow first request), loses its data on every restart, and anyone using
+  it can move the office or reset it.
+- **Mock-server control endpoints are open.** `/__mock/*` has no
+  protection; that is acceptable only because it is a mock.
 - **No authentication**, and `usesCleartextTraffic` is enabled on Android
   so the plain-HTTP mock server works. Both must change for production.
 - **Light theme only.** The Figma design has no dark theme.
