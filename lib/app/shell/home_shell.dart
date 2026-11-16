@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -13,12 +12,12 @@ import '../../core/widgets/pressable_scale.dart';
 import '../../features/attendance/presentation/views/attendance_view.dart';
 import '../../features/dashboard/presentation/controllers/dashboard_controller.dart';
 import '../../features/dashboard/presentation/views/dashboard_view.dart';
+import '../../features/developer/presentation/developer_settings_view.dart';
 import '../../features/leave/presentation/views/leave_view.dart';
 import '../../features/sync/presentation/sync_service.dart';
-import '../routes/app_routes.dart';
 import 'shell_controller.dart';
 
-/// App frame: the header, the three tabs and the bottom navigation bar.
+/// App frame: the header, the four tabs and the bottom navigation bar.
 class HomeShell extends GetView<ShellController> {
   const HomeShell({super.key});
 
@@ -26,12 +25,14 @@ class HomeShell extends GetView<ShellController> {
     DashboardView(),
     AttendanceView(),
     LeaveView(),
+    DeveloperSettingsView(),
   ];
 
   static const _titles = [
     AppStrings.tabHome,
     AppStrings.tabAttendance,
     AppStrings.tabLeave,
+    AppStrings.tabSettings,
   ];
 
   @override
@@ -47,14 +48,10 @@ class HomeShell extends GetView<ShellController> {
             title: _titles[controller.tabIndex.value],
             initials: dashboard.initials.value,
             online: sync.isOnline.value,
-            // Hidden entry to the reviewer tools, debug builds only.
-            onTitleLongPress: kDebugMode
-                ? () => Get.toNamed<void>(AppRoutes.developer)
-                : null,
           ),
         ),
       ),
-      // IndexedStack keeps all three tabs alive, so switching tabs does not
+      // IndexedStack keeps all four tabs alive, so switching tabs does not
       // lose scroll position.
       body: Obx(
         () => IndexedStack(index: controller.tabIndex.value, children: _tabs),
@@ -69,7 +66,8 @@ class HomeShell extends GetView<ShellController> {
   }
 }
 
-/// The three-item bottom bar from the design: an icon with a small label,
+/// The bottom bar: the design's three items plus Settings, each an icon
+/// with a small label,
 /// blue when selected.
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
@@ -85,6 +83,8 @@ class AppBottomNav extends StatelessWidget {
     (icon: AppIcons.navHome, label: AppStrings.tabHome),
     (icon: AppIcons.navAttendance, label: AppStrings.tabAttendance),
     (icon: AppIcons.navLeave, label: AppStrings.tabLeave),
+    // Reviewer tools: location simulation, mock scenarios, reset.
+    (icon: AppIcons.tune, label: AppStrings.tabSettings),
   ];
 
   @override
@@ -154,7 +154,7 @@ class _NavItem extends StatelessWidget {
           children: [
             SizedBox(
               height: 20,
-              child: Center(child: AppIcon(icon, color: color)),
+              child: Center(child: AppIcon(icon, color: color, size: 20)),
             ),
             const SizedBox(height: 2),
             Text(

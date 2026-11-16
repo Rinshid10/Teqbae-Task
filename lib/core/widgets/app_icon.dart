@@ -27,7 +27,6 @@ abstract final class AppIcons {
 
   static const login = 'login';
   static const logout = 'logout';
-  static const fingerprint = 'fingerprint';
   static const personCheck = 'person_check';
 
   static const check = 'check';

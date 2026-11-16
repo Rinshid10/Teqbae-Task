@@ -3,7 +3,7 @@ abstract final class AppRoutes {
   /// Launch screen; replaces itself with [shell] when its animation ends.
   static const splash = '/splash';
 
-  /// The bottom-navigation shell hosting Home · Attendance · Leave.
+  /// The bottom-navigation shell: Home · Attendance · Leave · Settings.
   static const shell = '/';
 
   /// Confirmation page after a check-in or check-out.
@@ -16,6 +16,4 @@ abstract final class AppRoutes {
   static const leaveForm = '/leave/new';
   static const leaveReview = '/leave/review';
 
-  /// Reviewer tools (debug builds).
-  static const developer = '/developer';
 }

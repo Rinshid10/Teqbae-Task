@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -59,10 +58,6 @@ class DashboardView extends GetView<DashboardController> {
             onOpenSync: () => Get.toNamed<void>(AppRoutes.syncCenter),
             onOpenLeave: () => shell.selectTab(2),
             onSeeAll: () => shell.selectTab(1),
-            // Reviewer tools exist in debug builds only.
-            onOpenDeveloper: kDebugMode
-                ? () => Get.toNamed<void>(AppRoutes.developer)
-                : null,
           ),
         ),
       ),
@@ -88,7 +83,6 @@ class DashboardBody extends StatelessWidget {
     required this.onOpenSync,
     required this.onOpenLeave,
     required this.onSeeAll,
-    required this.onOpenDeveloper,
   });
 
   final ViewState<DashboardData> state;
@@ -104,9 +98,6 @@ class DashboardBody extends StatelessWidget {
   final VoidCallback onOpenSync;
   final VoidCallback onOpenLeave;
   final VoidCallback onSeeAll;
-
-  /// Null hides the reviewer-tools button.
-  final VoidCallback? onOpenDeveloper;
 
   @override
   Widget build(BuildContext context) {
@@ -219,27 +210,6 @@ class DashboardBody extends StatelessWidget {
             ],
           ),
         ),
-        if (onOpenDeveloper != null) ...[
-          const SizedBox(width: AppSpacing.sm),
-          Semantics(
-            button: true,
-            label: AppStrings.devTitle,
-            child: PressableScale(
-              onTap: onOpenDeveloper,
-              child: Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: AppColors.panel,
-                  shape: BoxShape.circle,
-                  boxShadow: AppShadows.flat,
-                ),
-                child: const AppIcon(AppIcons.fingerprint),
-              ),
-            ),
-          ),
-        ],
       ],
     );
   }

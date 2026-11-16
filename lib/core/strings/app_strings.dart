@@ -10,6 +10,7 @@ abstract final class AppStrings {
   static const tabHome = 'Home';
   static const tabAttendance = 'Attendance';
   static const tabLeave = 'Leave';
+  static const tabSettings = 'Settings';
 
   // ---- Generic ------------------------------------------------------------
   static const retry = 'Try again';
@@ -307,7 +308,7 @@ abstract final class AppStrings {
   // ---- Developer settings (reviewers) -------------------------------------
   static const devTitle = 'Developer Settings';
   static const devSandbox = 'Developer Sandbox';
-  static const devDebugOnly = 'Debug only';
+  static const devDebugOnly = 'Test tools';
   static const devNoticeTitle = 'For reviewers';
   static const devNoticeBody =
       'These switches change where the app thinks you are and how the mock '

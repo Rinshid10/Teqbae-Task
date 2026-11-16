@@ -8,7 +8,6 @@ import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_text.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
-import '../../../core/widgets/app_header.dart';
 import '../../../core/widgets/app_icon.dart';
 import '../../../core/widgets/content_width.dart';
 import '../../../core/widgets/pressable_scale.dart';
@@ -18,8 +17,8 @@ import '../domain/developer_repository.dart';
 import 'developer_controller.dart';
 
 /// Reviewer tools: simulate a location, switch the mock server's scenario,
-/// see the office parameters, and reset all data. Reachable in debug builds
-/// from the fingerprint button on Home.
+/// see the office parameters, and reset all data. It is the fourth tab
+/// ("Settings") of the bottom navigation, in every build type.
 class DeveloperSettingsView extends GetView<DeveloperController> {
   const DeveloperSettingsView({super.key});
 
@@ -99,7 +98,6 @@ class DeveloperSettingsView extends GetView<DeveloperController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const BackHeader(title: AppStrings.devTitle),
       body: SafeArea(
         child: ContentWidth(
           child: SingleChildScrollView(

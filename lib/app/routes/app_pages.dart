@@ -4,7 +4,6 @@ import '../../features/attendance/presentation/bindings/attendance_binding.dart'
 import '../../features/attendance/presentation/views/attendance_success_view.dart';
 import '../../features/dashboard/presentation/bindings/dashboard_binding.dart';
 import '../../features/developer/presentation/developer_binding.dart';
-import '../../features/developer/presentation/developer_settings_view.dart';
 import '../../features/leave/presentation/bindings/leave_binding.dart';
 import '../../features/leave/presentation/views/leave_form_view.dart';
 import '../../features/leave/presentation/views/leave_review_view.dart';
@@ -28,12 +27,13 @@ abstract final class AppPages {
       name: AppRoutes.shell,
       page: () => const HomeShell(),
       transition: Transition.fadeIn,
-      // The shell shows all three tabs, so it owns all three controllers.
+      // The shell shows all four tabs, so it owns all four controllers.
       bindings: [
         BindingsBuilder(() => Get.lazyPut(() => ShellController())),
         DashboardBinding(),
         AttendanceBinding(),
         LeaveBinding(),
+        DeveloperBinding(),
       ],
     ),
     // The next three have no binding: they reuse controllers created by
@@ -54,11 +54,6 @@ abstract final class AppPages {
       name: AppRoutes.syncCenter,
       page: () => const SyncCenterView(),
       binding: SyncCenterBinding(),
-    ),
-    GetPage(
-      name: AppRoutes.developer,
-      page: () => const DeveloperSettingsView(),
-      binding: DeveloperBinding(),
     ),
   ];
 }

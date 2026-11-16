@@ -68,6 +68,7 @@ shows data the app does not have or claims it cannot make:
 | Shift window, lunch time, map preview, office photo, reporting manager | Omitted | No such data in the API |
 | "Submitting will supersede it" (overlapping leave) | "Choose different dates" style warning | Overlaps are rejected by the rules |
 | Header title "Apply Leave" on sync, location and developer screens | The screen's real title | A leftover in the design |
+| Developer Settings opened from a fingerprint button on Home; three bottom tabs | A fourth "Settings" tab in the bottom bar; no button on Home | Requested change, and easier for reviewers to find |
 | Designer "state preview" switchers and toggles | Omitted | Design-time controls, not product features |
 | Logo image | "REBS" set in type | The logo layer in the file is empty |
 | Location problems as a full page | Shown inside the location sheet | One flow, no extra navigation |
@@ -274,9 +275,10 @@ The office is at 9.9312, 76.2673 (Kochi) with a 200 m radius, so real GPS
 will normally be "outside". Two ways to simulate:
 
 1. **At launch** — `--dart-define=MOCK_LOCATION=<mode>`
-2. **At runtime** — open **Developer Settings**: tap the fingerprint button
-   next to the greeting on Home (or long-press the header title). Debug
-   builds only. Pick a location under "Simulate location"; it applies to
+2. **At runtime** — open the **Settings** tab (the fourth item in the
+   bottom navigation bar), which is the Developer Settings screen. It is
+   available in debug and release builds, because this is a test
+   submission. Pick a location under "Simulate location"; it applies to
    the next check, with no restart.
 
 | Mode | Behaviour | What the UI shows |
@@ -297,7 +299,7 @@ it; `SwitchableLocationService` forwards to one or the other.
 
 ## Mock scenarios
 
-The quickest way is inside the app: **Developer Settings → Mock API
+The quickest way is inside the app: **Settings tab → Mock API
 scenario** lists all seven and switches the server with one tap. The
 bottom of that screen also resets the server and clears the local data.
 
@@ -499,6 +501,9 @@ treat device GPS and device clocks as untrusted input (see Limitations).
   would delete them after some days.
 - **The mock server uses a fixed UTC+05:30 offset**, not a timezone
   database. Correct for India, wrong for any zone with daylight saving.
+- **Developer Settings ships in release builds too.** That is deliberate
+  for a test submission, so reviewers can simulate locations and server
+  scenarios in any build. A real product would hide it from production.
 - **No authentication**, and `usesCleartextTraffic` is enabled on Android
   so the plain-HTTP mock server works. Both must change for production.
 - **Light theme only.** The Figma design has no dark theme.

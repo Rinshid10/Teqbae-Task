@@ -285,7 +285,6 @@ Widget _dashboard(
       onOpenSync: onOpenSync ?? () {},
       onOpenLeave: () {},
       onSeeAll: () {},
-      onOpenDeveloper: () {},
     );
 
 Widget _attendance({
@@ -717,6 +716,11 @@ void main() {
     await tester.tap(find.text(AppStrings.tabLeave));
     await tester.pump(_short);
     expect(selected, 2);
+
+    // The fourth item opens the reviewer tools (Developer Settings).
+    await tester.tap(find.text(AppStrings.tabSettings));
+    await tester.pump(_short);
+    expect(selected, 3);
   });
 
   testWidgets('splash plays once and then reports it is finished',
