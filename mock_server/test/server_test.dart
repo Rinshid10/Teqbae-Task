@@ -421,6 +421,37 @@ void main() {
       expect(r.status, 200);
     });
 
+    test('POST /__mock/office moves the geofence for the app and the server',
+        () async {
+      // Bengaluru: far outside the default Kochi office.
+      const lat = 12.9716, lng = 77.5946;
+      expect((await postEvent(event(lat: lat, lng: lng))).json['code'],
+          'OUTSIDE_GEOFENCE');
+
+      final set = await call('POST', '/__mock/office',
+          body: {'lat': lat, 'lng': lng});
+      expect(set.status, 200);
+      expect(set.json, {'lat': lat, 'lng': lng, 'radiusMeters': 200});
+
+      // The app is told the new office, and the server checks against it.
+      final me = await call('GET', '/employee/me');
+      expect(me.json['office'], {'lat': lat, 'lng': lng, 'radiusMeters': 200});
+      expect((await postEvent(event(lat: lat, lng: lng))).status, 201);
+
+      // Reset puts the office back.
+      await call('POST', '/__mock/reset');
+      final back = await call('GET', '/employee/me');
+      expect(back.json['office'],
+          {'lat': 9.9312, 'lng': 76.2673, 'radiusMeters': 200});
+    });
+
+    test('POST /__mock/office refuses impossible coordinates', () async {
+      final r = await call('POST', '/__mock/office',
+          body: {'lat': 120, 'lng': 77.59});
+      expect(r.status, 422);
+      expect(server.store.officeLat, 9.9312);
+    });
+
     test('POST /__mock/reset clears the data and restores the success scenario',
         () async {
       await postEvent(event());

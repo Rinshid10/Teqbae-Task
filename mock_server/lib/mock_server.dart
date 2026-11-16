@@ -34,6 +34,7 @@ class MockServer {
     _control = Router()
       ..get('/__mock/scenario', _getScenario)
       ..post('/__mock/scenario', _setScenario)
+      ..post('/__mock/office', _setOffice)
       ..post('/__mock/reset', _reset);
   }
 
@@ -117,8 +118,8 @@ class MockServer {
       'department': 'Engineering',
       'designation': 'Software Engineer',
       'office': {
-        'lat': c.officeLat,
-        'lng': c.officeLng,
+        'lat': store.officeLat,
+        'lng': store.officeLng,
         'radiusMeters': c.officeRadiusMeters,
       },
       'timezone': c.timezoneName,
@@ -140,6 +141,27 @@ class MockServer {
     }
     store.scenario = scenario;
     return jsonResponse(200, {'name': scenario.wireName});
+  }
+
+  /// POST /__mock/office {"lat": 12.97, "lng": 77.59}
+  /// Moves the office geofence, so attendance can be tested with real GPS
+  /// from anywhere. The radius stays as configured. Reset undoes it.
+  Future<Response> _setOffice(Request request) async {
+    final body = await readJsonObject(request);
+    final lat = body?['lat'];
+    final lng = body?['lng'];
+    if (lat is! num || lat.abs() > 90 || lng is! num || lng.abs() > 180) {
+      return errorResponse(422, 'VALIDATION_ERROR',
+          'Send {"lat": -90..90, "lng": -180..180}.',
+          field: 'lat');
+    }
+    store.officeLat = lat.toDouble();
+    store.officeLng = lng.toDouble();
+    return jsonResponse(200, {
+      'lat': store.officeLat,
+      'lng': store.officeLng,
+      'radiusMeters': store.config.officeRadiusMeters,
+    });
   }
 
   Response _reset(Request request) {

@@ -311,8 +311,7 @@ abstract final class AppStrings {
   static const devDebugOnly = 'Test tools';
   static const devNoticeTitle = 'For reviewers';
   static const devNoticeBody =
-      'These switches change where the app thinks you are and how the mock '
-      'server answers.';
+      'These switches change where the app thinks you are.';
   static const devSimulateLocation = 'Simulate location';
   static String devActive(String mode) => 'Active: $mode';
   static const devRealGps = 'Real GPS';
@@ -323,18 +322,22 @@ abstract final class AppStrings {
   static const devDenied = 'Permission denied';
   static const devDeniedForever = 'Permanently denied';
   static const devUnavailable = 'GPS unavailable';
-  static const devMockScenario = 'Mock API scenario';
-  static const devServerConnected = 'Connected';
-  static const devServerUnreachable = 'Server unreachable';
-  static const devScenarioSuccess = 'Normal success';
-  static const devScenarioSlow = 'Slow network (4 s)';
-  static const devScenarioTimeout = 'Network timeout';
-  static const devScenarioTimeoutAfterCommit = 'Timeout after save';
-  static const devScenarioServerError = 'Server 500 error';
-  static const devScenarioDuplicate = 'Duplicate attendance';
-  static const devScenarioLeaveValidation = 'Leave validation error';
   static const devOfficeParameters = 'Office parameters';
-  static const devLocked = 'Read-only';
+  static const devLocked = 'For testing';
+  static const devUseCurrentLocation = 'Use my current location';
+  static const devEnterCoordinates = 'Enter coordinates';
+  static const devOfficeHint =
+      'Move the office to where you are, so check-in can be tested with '
+      'real GPS.';
+  static const devOfficeSheetTitle = 'Office location';
+  static const devLatitude = 'Latitude';
+  static const devLongitude = 'Longitude';
+  static const devLatitudeHint = 'e.g. 9.9312';
+  static const devLongitudeHint = 'e.g. 76.2673';
+  static const devSaveOffice = 'Save office location';
+  static const devLatitudeInvalid = 'Enter a latitude between -90 and 90.';
+  static const devLongitudeInvalid = 'Enter a longitude between -180 and 180.';
+  static const devOfficeUpdated = 'Office location updated';
   static const devCoordinates = 'Coordinates';
   static const devRadius = 'Radius limit';
   static const devTimezone = 'Timezone';

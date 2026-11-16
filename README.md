@@ -288,14 +288,25 @@ MOCK_SERVER_URL=http://localhost:8090 flutter test test/integration           # 
 ## Simulating location
 
 The office is at 9.9312, 76.2673 (Kochi) with a 200 m radius, so real GPS
-will normally be "outside". Two ways to simulate:
+will normally be "outside". Three ways to test:
 
 1. **At launch** — `--dart-define=MOCK_LOCATION=<mode>`
 2. **At runtime** — open the **Settings** tab (the fourth item in the
    bottom navigation bar), which is the Developer Settings screen. It is
    available in debug and release builds, because this is a test
-   submission. Pick a location under "Simulate location"; it applies to
-   the next check, with no restart.
+   submission. Pick Real GPS, Inside office or Outside office under
+   "Simulate location"; it applies to the next check, with no restart.
+   The three failure modes (`denied`, `denied_forever`, `unavailable`)
+   are available at launch only.
+
+3. **Move the office to you** — on the same Settings tab, under "Office
+   parameters", **Use my current location** sets the office to the
+   phone's real GPS position, and **Enter coordinates** takes a latitude
+   and longitude. After that, Real GPS is "inside" wherever you are. The
+   change is made on the mock server (`POST /__mock/office`) and read back
+   through `/employee/me`, so the app's check and the server's re-check
+   use the same office. It needs a connection, it affects everyone using
+   that server, and the reset button puts the office back.
 
 | Mode | Behaviour | What the UI shows |
 | --- | --- | --- |
@@ -315,11 +326,9 @@ it; `SwitchableLocationService` forwards to one or the other.
 
 ## Mock scenarios
 
-The quickest way is inside the app: **Settings tab → Mock API
-scenario** lists all seven and switches the server with one tap. The
-bottom of that screen also resets the server and clears the local data.
-
-Or switch from a terminal:
+Scenarios are switched from a terminal (the app's Settings tab only
+resets the server and clears the local data). For the hosted server, use
+`https://rebs-hrms-mock-api.onrender.com` in place of `http://localhost:8080`.
 
 ```bash
 curl -X POST http://localhost:8080/__mock/scenario -H "content-type: application/json" -d '{"name":"timeout_after_commit"}'
@@ -493,7 +502,7 @@ treat device GPS and device clocks as untrusted input (see Limitations).
 - API request/response logging in debug builds
 - All 13 Figma screens, including the verify-then-confirm location sheet,
   check-in confirmation, Sync Center, leave review step and in-app
-  Developer Settings (location simulation, scenario switch, reset)
+  Developer Settings (location simulation, reset)
 - Tablet width cap and large-font safe layouts
 - Tests: 163 app tests (unit + widget), 33 server tests, 6 live-server tests
 
@@ -518,8 +527,8 @@ treat device GPS and device clocks as untrusted input (see Limitations).
 - **The mock server uses a fixed UTC+05:30 offset**, not a timezone
   database. Correct for India, wrong for any zone with daylight saving.
 - **Developer Settings ships in release builds too.** That is deliberate
-  for a test submission, so reviewers can simulate locations and server
-  scenarios in any build. A real product would hide it from production.
+  for a test submission, so reviewers can simulate locations in any
+  build. A real product would hide it from production.
 - **No authentication**, and `usesCleartextTraffic` is enabled on Android
   so the plain-HTTP mock server works. Both must change for production.
 - **Light theme only.** The Figma design has no dark theme.

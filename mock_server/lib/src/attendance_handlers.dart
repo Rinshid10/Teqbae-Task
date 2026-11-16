@@ -111,7 +111,7 @@ Future<Response> postAttendanceEvent(Request request, Store store) async {
   // ---- 4. geofence --------------------------------------------------------
   final config = store.config;
   final distance = distanceInMeters(
-      lat.toDouble(), lng.toDouble(), config.officeLat, config.officeLng);
+      lat.toDouble(), lng.toDouble(), store.officeLat, store.officeLng);
   if (distance > config.officeRadiusMeters) {
     return errorResponse(
         422,

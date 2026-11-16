@@ -27,6 +27,13 @@ class Store {
 
   final leaveRequests = <LeaveRequest>[];
 
+  /// The office geofence centre. Starts at the configured office and can be
+  /// moved with POST /__mock/office, so a reviewer anywhere in the world can
+  /// test with their real GPS. /employee/me and the geofence check both read
+  /// these, so the app and the server always agree.
+  late double officeLat;
+  late double officeLng;
+
   /// Yearly allowance per leave type.
   static const leaveTotals = {'CASUAL': 12, 'SICK': 8};
 
@@ -77,7 +84,8 @@ class Store {
 
   // ---- reset --------------------------------------------------------------
 
-  /// Clears everything. The server starts with no attendance and no leave
+  /// Clears everything and puts the office back where the config says. The
+  /// server starts with no attendance and no leave
   /// requests: the only fixed data is the employee (/employee/me) and the
   /// yearly leave allowance. Every record is created through the API.
   void reset() {
@@ -86,5 +94,7 @@ class Store {
     recordByEventId.clear();
     leaveRequests.clear();
     _nextId = 1;
+    officeLat = config.officeLat;
+    officeLng = config.officeLng;
   }
 }

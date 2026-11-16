@@ -2,10 +2,12 @@ import 'package:get/get.dart';
 
 import '../../../app/config/app_config.dart';
 import '../../../core/strings/app_strings.dart';
-import '../../../core/utils/result.dart';
 import '../../../core/widgets/app_messenger.dart';
+import '../../../core/utils/result.dart';
 import '../../attendance/data/services/mock_location_service.dart';
+import '../../attendance/domain/services/location_service.dart';
 import '../../employee/domain/entities/employee.dart';
+import '../../employee/domain/usecases/get_employee.dart';
 import '../../employee/domain/usecases/get_office.dart';
 import '../domain/developer_repository.dart';
 
@@ -25,31 +27,35 @@ class OfficeInfoUi {
 }
 
 /// Backs the Developer Settings screen (for reviewers): simulate a
-/// location, switch the mock server's scenario, reset everything.
+/// location, reset everything.
 class DeveloperController extends GetxController {
   DeveloperController({
     required DeveloperRepository repository,
     required SwitchableLocationService locationService,
     required GetOffice getOffice,
+    required GetEmployee getEmployee,
+    required LocationService deviceLocation,
     required AppConfig config,
   })  : _repository = repository,
         _locationService = locationService,
         _getOffice = getOffice,
+        _getEmployee = getEmployee,
+        _deviceLocation = deviceLocation,
         _config = config,
         locationMode = locationService.mode.obs;
 
   final DeveloperRepository _repository;
   final SwitchableLocationService _locationService;
   final GetOffice _getOffice;
+  final GetEmployee _getEmployee;
+
+  /// The real GPS, whatever location mode is being simulated.
+  final LocationService _deviceLocation;
   final AppConfig _config;
 
   final Rx<LocationMode> locationMode;
 
-  /// The mock server's scenario. Null until it has been read, or when the
-  /// server cannot be reached.
-  final scenario = Rxn<MockScenario>();
-
-  /// True while a scenario change or reset is in flight.
+  /// True while a reset or an office change is in flight.
   final isBusy = false.obs;
   final office = Rxn<OfficeInfoUi>();
 
@@ -57,7 +63,6 @@ class DeveloperController extends GetxController {
   void onInit() {
     super.onInit();
     _loadOffice();
-    _loadScenario();
   }
 
   Future<void> _loadOffice() async {
@@ -73,32 +78,69 @@ class DeveloperController extends GetxController {
     );
   }
 
-  Future<void> _loadScenario() async {
-    final result = await _repository.currentScenario();
-    if (isClosed) return;
-    scenario.value = result.fold((value) => value, (_) => null);
-  }
-
   /// Takes effect on the next location check; nothing is restarted.
   void selectLocationMode(LocationMode mode) {
     _locationService.mode = mode;
     locationMode.value = mode;
   }
 
-  Future<void> selectScenario(MockScenario value) async {
+  /// Moves the office to where the device really is, so attendance can be
+  /// tested with real GPS from anywhere.
+  Future<void> useCurrentLocationAsOffice() async {
     if (isBusy.value) return;
     isBusy.value = true;
     try {
-      switch (await _repository.setScenario(value)) {
-        case Success():
-          scenario.value = value;
+      switch (await _deviceLocation.currentPosition()) {
+        case Success(:final value):
+          await _applyOffice(value.lat, value.lng);
         case Fail(:final failure):
-          // Usually: the mock server is not running or not reachable.
+          // Permission denied, location off, no fix: say which.
           AppMessenger.show(failure.message);
       }
     } finally {
       isBusy.value = false;
     }
+  }
+
+  /// Checks typed coordinates. Returns the error for each field that is
+  /// wrong (empty map = valid), keyed 'lat' / 'lng'.
+  Map<String, String> validateCoordinates(String lat, String lng) {
+    final latitude = double.tryParse(lat.trim());
+    final longitude = double.tryParse(lng.trim());
+    return {
+      if (latitude == null || latitude.abs() > 90)
+        'lat': AppStrings.devLatitudeInvalid,
+      if (longitude == null || longitude.abs() > 180)
+        'lng': AppStrings.devLongitudeInvalid,
+    };
+  }
+
+  /// Moves the office to typed coordinates. Returns true when it was saved.
+  Future<bool> setOfficeCoordinates(String lat, String lng) async {
+    if (isBusy.value) return false;
+    if (validateCoordinates(lat, lng).isNotEmpty) return false;
+    isBusy.value = true;
+    try {
+      return await _applyOffice(
+          double.parse(lat.trim()), double.parse(lng.trim()));
+    } finally {
+      isBusy.value = false;
+    }
+  }
+
+  /// The server is the one place the office is stored: it is changed
+  /// there, then read back through /employee/me into the local cache. That
+  /// way the app's geofence check and the server's re-check cannot differ.
+  Future<bool> _applyOffice(double lat, double lng) async {
+    final result = await _repository.setOffice(lat: lat, lng: lng);
+    if (result case Fail(:final failure)) {
+      AppMessenger.show(failure.message);
+      return false;
+    }
+    await _getEmployee(refresh: true);
+    await _loadOffice();
+    AppMessenger.show(AppStrings.devOfficeUpdated);
+    return true;
   }
 
   /// Resets the mock server and wipes local data. Returns true when the
@@ -110,7 +152,6 @@ class DeveloperController extends GetxController {
       // Best effort: local data is cleared even if the server is down.
       final server = await _repository.resetServer();
       await _repository.clearLocalData();
-      scenario.value = server.isSuccess ? MockScenario.success : null;
       AppMessenger.show(server.isSuccess
           ? AppStrings.devResetDone
           : AppStrings.devResetLocalOnly);

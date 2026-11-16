@@ -15,25 +15,17 @@ class DeveloperRepositoryImpl implements DeveloperRepository {
   final Dio _dio;
   final AppDatabase _database;
 
-  static const _scenarioPath = '/__mock/scenario';
   static const _resetPath = '/__mock/reset';
+  static const _officePath = '/__mock/office';
 
   @override
-  Future<Result<MockScenario>> currentScenario() async {
-    try {
-      final response = await guardRequest(
-          () => _dio.get<Map<String, dynamic>>(_scenarioPath));
-      return Success(MockScenario.fromWire(response.data?['name'] as String?));
-    } catch (error) {
-      return Fail(toFailure(error));
-    }
-  }
-
-  @override
-  Future<Result<void>> setScenario(MockScenario scenario) async {
+  Future<Result<void>> setOffice({
+    required double lat,
+    required double lng,
+  }) async {
     try {
       await guardRequest(() =>
-          _dio.post<dynamic>(_scenarioPath, data: {'name': scenario.wire}));
+          _dio.post<dynamic>(_officePath, data: {'lat': lat, 'lng': lng}));
       return const Success(null);
     } catch (error) {
       return Fail(toFailure(error));

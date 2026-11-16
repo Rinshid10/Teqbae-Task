@@ -9,14 +9,14 @@ import '../../../core/theme/app_text.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_icon.dart';
+import '../../../core/widgets/app_sheet.dart';
 import '../../../core/widgets/content_width.dart';
 import '../../../core/widgets/pressable_scale.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../attendance/data/services/mock_location_service.dart';
-import '../domain/developer_repository.dart';
 import 'developer_controller.dart';
 
-/// Reviewer tools: simulate a location, switch the mock server's scenario,
+/// Reviewer tools: simulate a location,
 /// see the office parameters, and reset all data. It is the fourth tab
 /// ("Settings") of the bottom navigation, in every build type.
 class DeveloperSettingsView extends GetView<DeveloperController> {
@@ -62,31 +62,14 @@ class DeveloperSettingsView extends GetView<DeveloperController> {
     ),
   };
 
-  // (dot colour, title) for each mock-server scenario.
-  static const _scenarios = {
-    MockScenario.success: (AppColors.success, AppStrings.devScenarioSuccess),
-    MockScenario.slow: (AppColors.warning, AppStrings.devScenarioSlow),
-    MockScenario.timeout: (
-      AppColors.textTertiary,
-      AppStrings.devScenarioTimeout
-    ),
-    MockScenario.timeoutAfterCommit: (
-      Color(0xFFFFB95F),
-      AppStrings.devScenarioTimeoutAfterCommit
-    ),
-    MockScenario.serverError: (
-      AppColors.danger,
-      AppStrings.devScenarioServerError
-    ),
-    MockScenario.duplicateAttendance: (
-      AppColors.danger,
-      AppStrings.devScenarioDuplicate
-    ),
-    MockScenario.leaveValidation: (
-      AppColors.danger,
-      AppStrings.devScenarioLeaveValidation
-    ),
-  };
+  /// The modes offered on screen. The other three (permission denied,
+  /// permanently denied, GPS unavailable) can still be set at launch with
+  /// --dart-define=MOCK_LOCATION, which is why they stay in [_locations].
+  static const _shownModes = [
+    LocationMode.device,
+    LocationMode.inside,
+    LocationMode.outside,
+  ];
 
   Future<void> _reset() async {
     if (await controller.resetEverything()) {
@@ -178,8 +161,8 @@ class DeveloperSettingsView extends GetView<DeveloperController> {
                   shadow: AppShadows.flat,
                   child: Column(
                     children: [
-                      for (final mode in LocationMode.values) ...[
-                        if (mode != LocationMode.values.first) const Divider(),
+                      for (final mode in _shownModes) ...[
+                        if (mode != _shownModes.first) const Divider(),
                         Obx(
                           () => _RadioRow(
                             leading: AppIcon(
@@ -197,52 +180,6 @@ class DeveloperSettingsView extends GetView<DeveloperController> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
-
-                // ---- mock API scenario ----------------------------------
-                Obx(
-                  () => _SectionLabel(
-                    icon: AppIcons.swapArrows,
-                    title: AppStrings.devMockScenario,
-                    // Null scenario = the server could not be reached.
-                    trailing: controller.scenario.value == null
-                        ? AppStrings.devServerUnreachable
-                        : AppStrings.devServerConnected,
-                    trailingColor: controller.scenario.value == null
-                        ? AppColors.danger
-                        : AppColors.success,
-                  ),
-                ),
-                AppCard(
-                  radius: 12,
-                  padding: EdgeInsets.zero,
-                  shadow: AppShadows.flat,
-                  child: Column(
-                    children: [
-                      for (final scenario in MockScenario.values) ...[
-                        if (scenario != MockScenario.values.first)
-                          const Divider(),
-                        Obx(
-                          () => _RadioRow(
-                            leading: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: _scenarios[scenario]!.$1,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            title: _scenarios[scenario]!.$2,
-                            selected: controller.scenario.value == scenario,
-                            onTap: controller.isBusy.value
-                                ? null
-                                : () => controller.selectScenario(scenario),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
 
                 // ---- office parameters ----------------------------------
                 const _SectionLabel(
@@ -285,6 +222,36 @@ class DeveloperSettingsView extends GetView<DeveloperController> {
                     ),
                   );
                 }),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  AppStrings.devOfficeHint,
+                  style:
+                      AppText.caption.copyWith(color: AppColors.textTertiary),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Obx(
+                  () => SecondaryButton(
+                    label: AppStrings.devUseCurrentLocation,
+                    icon: AppIcons.gpsCrosshair,
+                    onPressed: controller.isBusy.value
+                        ? null
+                        : controller.useCurrentLocationAsOffice,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Obx(
+                  () => SecondaryButton(
+                    label: AppStrings.devEnterCoordinates,
+                    icon: AppIcons.building,
+                    onPressed: controller.isBusy.value
+                        ? null
+                        : () => showAppSheet<void>(
+                              context,
+                              builder: (_) =>
+                                  _OfficeCoordinatesSheet(controller),
+                            ),
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.lg),
 
                 Obx(
@@ -307,6 +274,134 @@ class DeveloperSettingsView extends GetView<DeveloperController> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Bottom sheet for typing the office latitude and longitude.
+class _OfficeCoordinatesSheet extends StatefulWidget {
+  const _OfficeCoordinatesSheet(this.controller);
+
+  final DeveloperController controller;
+
+  @override
+  State<_OfficeCoordinatesSheet> createState() =>
+      _OfficeCoordinatesSheetState();
+}
+
+class _OfficeCoordinatesSheetState extends State<_OfficeCoordinatesSheet> {
+  final _lat = TextEditingController();
+  final _lng = TextEditingController();
+  Map<String, String> _errors = const {};
+
+  @override
+  void dispose() {
+    _lat.dispose();
+    _lng.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final errors =
+        widget.controller.validateCoordinates(_lat.text, _lng.text);
+    setState(() => _errors = errors);
+    if (errors.isNotEmpty) return;
+
+    final saved =
+        await widget.controller.setOfficeCoordinates(_lat.text, _lng.text);
+    if (saved && mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.page, AppSpacing.sm, AppSpacing.page, AppSpacing.lg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(AppStrings.devOfficeSheetTitle, style: AppText.title),
+          const SizedBox(height: AppSpacing.md),
+          _CoordinateField(
+            controller: _lat,
+            label: AppStrings.devLatitude,
+            hint: AppStrings.devLatitudeHint,
+            error: _errors['lat'],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _CoordinateField(
+            controller: _lng,
+            label: AppStrings.devLongitude,
+            hint: AppStrings.devLongitudeHint,
+            error: _errors['lng'],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Obx(
+            () => PrimaryButton(
+              label: AppStrings.devSaveOffice,
+              isLoading: widget.controller.isBusy.value,
+              onPressed: widget.controller.isBusy.value ? null : _save,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One labelled number field with its error underneath.
+class _CoordinateField extends StatelessWidget {
+  const _CoordinateField({
+    required this.controller,
+    required this.label,
+    required this.hint,
+    this.error,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String hint;
+  final String? error;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppText.labelMedium),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.panel,
+            borderRadius: BorderRadius.circular(12),
+            border: error == null
+                ? null
+                : Border.all(color: AppColors.danger, width: 1),
+          ),
+          child: TextField(
+            controller: controller,
+            // Signed, because southern and western coordinates are negative.
+            keyboardType: const TextInputType.numberWithOptions(
+                signed: true, decimal: true),
+            style: AppText.input,
+            cursorColor: AppColors.brand,
+            decoration: InputDecoration(
+              isCollapsed: true,
+              border: InputBorder.none,
+              hintText: hint,
+              hintStyle:
+                  AppText.input.copyWith(color: AppColors.textTertiary),
+            ),
+          ),
+        ),
+        if (error != null) ...[
+          const SizedBox(height: 4),
+          Text(error!,
+              style: AppText.caption.copyWith(color: AppColors.danger)),
+        ],
+      ],
     );
   }
 }

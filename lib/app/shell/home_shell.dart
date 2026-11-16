@@ -83,7 +83,7 @@ class AppBottomNav extends StatelessWidget {
     (icon: AppIcons.navHome, label: AppStrings.tabHome),
     (icon: AppIcons.navAttendance, label: AppStrings.tabAttendance),
     (icon: AppIcons.navLeave, label: AppStrings.tabLeave),
-    // Reviewer tools: location simulation, mock scenarios, reset.
+    // Reviewer tools: location simulation, reset.
     (icon: AppIcons.tune, label: AppStrings.tabSettings),
   ];
 
